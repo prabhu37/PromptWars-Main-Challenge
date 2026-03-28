@@ -1,20 +1,18 @@
-# Use an official Python runtime as a parent image
-FROM python:3.13-slim
+# Use a highly stable, widely tested base image
+FROM python:3.11-slim
 
-# Set the working directory in the container
+# Set the working directory
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    build-essential \
+# Install only the essential system packages for the healthcheck
+RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
-    software-properties-common \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy the requirements file into the container
+# Copy requirement file first to leverage Docker cache
 COPY requirements.txt .
 
-# Install any needed packages specified in requirements.txt
+# Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the application code
