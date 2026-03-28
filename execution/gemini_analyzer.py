@@ -81,6 +81,7 @@ def analyze_input(
     data: Union[str, Image.Image, Any],
     input_type: str,
     directive_path: str = "directives/data_structuring.md",
+    model_id: str = "gemini-flash-latest",
 ) -> Dict[str, Any]:
     """
     Orchestrates the Gemini API call using the defined directive and validates output.
@@ -89,11 +90,12 @@ def analyze_input(
         data: The input data (string for text, PIL Image for image, or File object for audio).
         input_type: 'text', 'image', or 'audio'.
         directive_path: Path to the markdown directive.
+        model_id: The Gemini model identifier to use.
 
     Returns:
         Dict containing the structured analysis or an error object.
     """
-    logger.info(f"Starting analysis for input type: {input_type}")
+    logger.info(f"Starting analysis for input type: {input_type} using {model_id}")
 
     try:
         directive = get_directive(directive_path)
@@ -101,9 +103,8 @@ def analyze_input(
         return {"error": f"Failed to load directive: {str(e)}", "status": "Failed"}
 
     # Selection logic for the model
-    # gemini-2.0-flash is currently favored for speed and multi-modal stability.
     model = genai.GenerativeModel(
-        model_name="gemini-2.0-flash",
+        model_name=model_id,
         generation_config={"response_mime_type": "application/json"},
     )
 

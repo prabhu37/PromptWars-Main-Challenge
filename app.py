@@ -80,9 +80,9 @@ def load_app_config():
     wait=wait_exponential(multiplier=1, min=4, max=10),
     reraise=True,
 )
-def robust_analysis_call(data: Any, input_type: str) -> Dict[str, Any]:
+def robust_analysis_call(data: Any, input_type: str, model_id: str) -> Dict[str, Any]:
     """Wraps the execution layer with exponential backoff retries."""
-    return analyze_input(data, input_type)
+    return analyze_input(data, input_type, model_id=model_id)
 
 
 # ----------------------------------------------------------------------------
@@ -92,7 +92,7 @@ def render_header():
     st.title("🧠 Intelligent Decision-Support Interface")
     st.markdown(
         "Transforming **unstructured real-world inputs** into actionable, "
-        "structured insights using Gemini 2.0 Flash."
+        "structured insights."
     )
 
 
@@ -112,6 +112,21 @@ def render_sidebar(config):
             st.error("❌ Gemini API: Key Missing in .env")
             st.info("Please add `GEMINI_API_KEY` to your `.env` file.")
 
+        st.divider()
+        st.header("🧠 Model Selection")
+        model_choice = st.selectbox(
+            "Select Analytic Engine",
+            [
+                "gemini-flash-latest",
+                "gemini-2.0-flash",
+                "gemini-pro-latest",
+                "gemini-flash-lite-latest",
+            ],
+            index=0,
+            help="Switch models if you encounter quota limits or need higher reasoning.",
+        )
+        return model_choice
+
 
 # ----------------------------------------------------------------------------
 # MAIN APPLICATION LOGIC
@@ -119,7 +134,7 @@ def render_sidebar(config):
 def main():
     config = load_app_config()
     render_header()
-    render_sidebar(config)
+    model_id = render_sidebar(config)
 
     # Input Selection with Accessibility help
     input_mode = st.radio(
@@ -198,12 +213,12 @@ def main():
             if internal_type == "audio":
                 try:
                     audio_handle = genai.upload_file(path=user_data)
-                    result = robust_analysis_call(audio_handle, "audio")
+                    result = robust_analysis_call(audio_handle, "audio", model_id)
                 except Exception as e:
                     st.error(f"Media Upload Failed: {e}")
                     return
             else:
-                result = robust_analysis_call(user_data, internal_type)
+                result = robust_analysis_call(user_data, internal_type, model_id)
 
             # Error Handling Layer
             if "error" in result:
