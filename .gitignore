@@ -1,0 +1,15 @@
+# Agent Environment files
+.env
+.tmp/
+credentials.json
+token.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
