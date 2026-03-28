@@ -20,47 +20,117 @@ st.set_page_config(
     page_title="Intelligent Decision-Support Interface",
     page_icon="🧠",
     layout="wide",
+    initial_sidebar_state="expanded",
 )
 
 # ----------------------------------------------------------------------------
-# CUSTOM CSS (Premium UI)
+# PREMIUM UI SYSTEM (Design System)
 # ----------------------------------------------------------------------------
 st.markdown(
     """
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Outfit:wght@400;700&display=swap" rel="stylesheet">
 <style>
-    .main {
-        background-color: #0e1117;
-        color: #ffffff;
+    /* Global Styles */
+    :root {
+        --primary: #6366F1;
+        --secondary: #06B6D4;
+        --accent: #F43F5E;
+        --bg-deep: #0B0E14;
+        --card-bg: rgba(25, 30, 42, 0.7);
+        --border-glow: rgba(99, 102, 241, 0.2);
     }
-    .stButton>button {
-        background-color: #4a90e2;
-        color: white;
-        border-radius: 8px;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        width: 100%;
-        font-weight: 600;
-    }
-    .stButton>button:hover {
-        background-color: #357abd;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
-    }
-    .card {
-        padding: 24px;
-        border-radius: 16px;
-        background-color: #1e1e1e;
-        border: 1px solid #333;
-        margin-bottom: 24px;
-    }
-    h1, h2, h3 {
-        color: #ffffff;
+    
+    .stApp {
+        background: radial-gradient(circle at top right, #111827, #0B0E14);
+        color: #E2E8F0;
         font-family: 'Inter', sans-serif;
+    }
+    
+    h1, h2, h3, .main-title {
+        font-family: 'Outfit', sans-serif !important;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+    }
+    
+    /* Glassmorphism Cards */
+    .glass-card {
+        background: var(--card-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 20px;
+        padding: 24px;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        margin-bottom: 24px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .glass-card:hover {
+        border-color: var(--primary);
+        box-shadow: 0 0 20px var(--border-glow);
+        transform: translateY(-2px);
+    }
+    
+    /* Sidebar Aesthetics */
+    .sidebar .stMarkdown {
+        font-size: 0.9rem;
+    }
+    
+    .status-dot {
+        height: 8px;
+        width: 8px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 8px;
+    }
+    .status-active { background-color: #22C55E; box-shadow: 0 0 8px #22C55E; }
+    .status-pending { background-color: #FACC15; }
+    .status-error { background-color: #EF4444; }
+
+    /* Custom Button */
+    .stButton>button {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 12px 24px;
+        font-weight: 600;
+        width: 100%;
+        transition: all 0.3s;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    .stButton>button:hover {
+        opacity: 0.9;
+        transform: scale(1.02);
+        box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
+    }
+
+    /* Result Aesthetics */
+    .insight-pill {
+        background: rgba(99, 102, 241, 0.1);
+        border-left: 4px solid var(--primary);
+        padding: 12px;
+        border-radius: 0 8px 8px 0;
+        margin-bottom: 12px;
+    }
+    .entity-tag {
+        background: rgba(6, 182, 212, 0.1);
+        border: 1px solid rgba(6, 182, 212, 0.2);
+        color: #22D3EE;
+        padding: 2px 8px;
+        border-radius: 6px;
+        font-size: 0.8rem;
+        display: inline-block;
+        margin: 4px;
     }
 </style>
 """,
     unsafe_allow_html=True,
 )
-
 
 # ----------------------------------------------------------------------------
 # CACHED UTILITIES
@@ -89,33 +159,49 @@ def robust_analysis_call(data: Any, input_type: str, model_id: str) -> Dict[str,
 # UI COMPONENTS
 # ----------------------------------------------------------------------------
 def render_header():
-    st.title("🧠 Intelligent Decision-Support Interface")
     st.markdown(
-        "Transforming **unstructured real-world inputs** into actionable, "
-        "structured insights."
+        """
+        <div style="text-align: center; padding: 40px 0;">
+            <h1 style="font-size: 3rem; background: linear-gradient(to right, #818CF8, #22D3EE); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                INTELLIGENT DECISION SUPPORT
+            </h1>
+            <p style="font-size: 1.1rem; color: #94A3B8; letter-spacing: 0.1em;">
+                REAL-TIME MULTIMODAL ACTIONABLE DATA SYNTHESIS
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
 
 def render_sidebar(config):
     with st.sidebar:
-        st.header("⚙️ System Status")
-        st.info("### 3-Layer Architecture")
-        st.caption("Layer 1: Directive (SOP)")
-        st.caption("Layer 2: Orchestration (Decision Logic)")
-        st.caption("Layer 3: Execution (Deterministic Scripts)")
+        st.markdown(
+            '<h2 style="font-size: 1.5rem;">⚙️ SYSTEM CORE</h2>', unsafe_allow_html=True
+        )
+        st.markdown(
+            """
+            <div class="glass-card" style="padding: 15px;">
+                <p><span class="status-dot status-active"></span>Directive Layer: Live</p>
+                <p><span class="status-dot status-active"></span>Orchestration: Ready</p>
+                <p><span class="status-dot status-active"></span>Execution: Secure</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
         st.divider()
 
         if config["api_key_found"]:
-            st.success("✅ Gemini API: Connected")
+            st.success("✅ Gemini Endpoint: Active")
         else:
-            st.error("❌ Gemini API: Key Missing in .env")
-            st.info("Please add `GEMINI_API_KEY` to your `.env` file.")
+            st.error("❌ Gemini Endpoint: Offline")
+            st.info("Key missing in `.env`.")
 
         st.divider()
-        st.header("🧠 Model Selection")
+        st.markdown("### 🧠 ANALYTIC ENGINE")
         model_choice = st.selectbox(
-            "Select Analytic Engine",
+            "Select Processing Core",
             [
                 "gemini-flash-latest",
                 "gemini-2.0-flash",
@@ -123,7 +209,7 @@ def render_sidebar(config):
                 "gemini-flash-lite-latest",
             ],
             index=0,
-            help="Switch models if you encounter quota limits or need higher reasoning.",
+            help="Switch models to manage quota limits or reasoning depth.",
         )
         return model_choice
 
@@ -136,80 +222,61 @@ def main():
     render_header()
     model_id = render_sidebar(config)
 
-    # Input Selection with Accessibility help
-    input_mode = st.radio(
-        "Select Inquiry Channel",
-        ["Text Intelligence", "Visual Diagnostics", "Audio Analysis"],
-        horizontal=True,
-        help="Choose the type of messy real-world data you wish to process.",
-    )
+    # Input Selection
+    cols = st.columns([1, 1, 1])
+    with cols[0]:
+        if st.button("📝 TEXT INTEL"):
+            st.session_state.input_mode = "text"
+    with cols[1]:
+        if st.button("🖼️ VISUAL DIAG"):
+            st.session_state.input_mode = "image"
+    with cols[2]:
+        if st.button("🎙️ AUDIO ANALYTICS"):
+            st.session_state.input_mode = "audio"
 
-    # Mapping UI friendly names to internal types
-    mode_map = {
-        "Text Intelligence": (
-            "text",
-            "Paste messy notes, news feeds, or reports here:",
-        ),
-        "Visual Diagnostics": (
-            "image",
-            "Upload documents, scene photos, or medical scans:",
-        ),
-        "Audio Analysis": ("audio", "Upload voice recordings or audio updates:"),
-    }
-    internal_type, label = mode_map[input_mode]
+    if "input_mode" not in st.session_state:
+        st.session_state.input_mode = "text"
 
+    internal_type = st.session_state.input_mode
     user_data = None
 
-    with st.container():
-        st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.markdown('<div class="glass-card">', unsafe_allow_html=True)
 
-        if internal_type == "text":
-            user_data = st.text_area(
-                label,
-                height=250,
-                placeholder="e.g. Broken water main at 12th Street. Crews on site. Schools closing at 2pm.",
-                help="Input raw text data from any source.",
-            )
+    if internal_type == "text":
+        user_data = st.text_area(
+            "INCOMING DATA STREAM",
+            height=200,
+            placeholder="Paste raw notes, sensor feeds, or emergency reports...",
+            help="Input raw text from any source.",
+        )
 
-        elif internal_type == "image":
-            uploaded_file = st.file_uploader(
-                label,
-                type=["jpg", "png", "jpeg"],
-                help="Supports document scans and real-world scene photography.",
-            )
-            if uploaded_file:
-                user_data = Image.open(uploaded_file)
-                st.image(
-                    user_data, caption="Ingested Visual Data", use_container_width=True
-                )
+    elif internal_type == "image":
+        uploaded_file = st.file_uploader(
+            "INGEST VISUAL DATA", type=["jpg", "png", "jpeg"]
+        )
+        if uploaded_file:
+            user_data = Image.open(uploaded_file)
+            st.image(user_data, use_container_width=True)
 
-        elif internal_type == "audio":
-            uploaded_file = st.file_uploader(
-                label,
-                type=["wav", "mp3"],
-                help="Handles verbal reports and ambient recordings.",
-            )
-            if uploaded_file:
-                with tempfile.NamedTemporaryFile(
-                    delete=False, suffix=os.path.splitext(uploaded_file.name)[1]
-                ) as tmp:
-                    tmp.write(uploaded_file.getvalue())
-                    user_data = tmp.name
-                st.audio(uploaded_file, format="audio/wav")
+    elif internal_type == "audio":
+        uploaded_file = st.file_uploader("INGEST AUDIO SIGNAL", type=["wav", "mp3"])
+        if uploaded_file:
+            with tempfile.NamedTemporaryFile(
+                delete=False, suffix=os.path.splitext(uploaded_file.name)[1]
+            ) as tmp:
+                tmp.write(uploaded_file.getvalue())
+                user_data = tmp.name
+            st.audio(uploaded_file, format="audio/wav")
 
-        st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
     # Execution Trigger
-    if st.button(
-        "🚀 Execute Strategic Analysis",
-        help="Trigger the 3-layer architecture to process your input.",
-    ):
+    if st.button("🚀 EXECUTE STRATEGIC SYNTHESIS"):
         if not user_data:
-            st.warning("⚠️ No data detected. Please provide input before execution.")
+            st.warning("⚠️ No data detected. Please feed the signal.")
             return
 
-        with st.spinner("Orchestrating AI Execution Layers..."):
-            # Handle special audio upload for Gemini
+        with st.spinner("Processing through 3-Layer Architecture..."):
             if internal_type == "audio":
                 try:
                     audio_handle = genai.upload_file(path=user_data)
@@ -220,67 +287,88 @@ def main():
             else:
                 result = robust_analysis_call(user_data, internal_type, model_id)
 
-            # Error Handling Layer
             if "error" in result:
-                st.error(f"### Analysis Interrupted\n{result.get('error')}")
-                if "details" in result:
-                    with st.expander("Technical Error Surface"):
-                        st.write(result["details"])
+                st.error(f"Analysis Failed: {result['error']}")
                 return
 
-            # Success Feedback & Insights Rendering
             render_insights(result)
 
 
 def render_insights(result: Dict[str, Any]):
-    """Renders the extraction results in a clean grid."""
-    col1, col2 = st.columns([1, 1], gap="large")
+    """Renders the extraction results in a premium UI layout."""
+    st.markdown("---")
+    res_col1, res_col2 = st.columns([1, 1.2], gap="large")
 
-    with col1:
-        st.subheader("📋 Structural Summary")
-        st.markdown(f"**Domain Category:** `{result.get('category', 'N/A')}`")
-        st.markdown(f"**Abstract:** {result.get('summary', '...').strip()}")
+    with res_col1:
+        st.markdown(
+            f'<div class="glass-card" style="border-left: 5px solid var(--secondary);">'
+            f'<h3 style="color: var(--secondary);">📋 EXTRACTION SUMMARY</h3>'
+            f'<p><strong>DOMAIN:</strong> <span class="entity-tag">{result.get("category", "N/A")}</span></p>'
+            f'<p style="font-size: 0.95rem;">{result.get("summary", "No summary available.")}</p>'
+            f"</div>",
+            unsafe_allow_html=True,
+        )
 
-        st.divider()
-        st.markdown("**🔍 Identified Entities**")
+        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+        st.markdown("#### 🔍 KEY ENTITIES")
         entities = result.get("entities", [])
         if entities:
             for e in entities:
                 st.markdown(
-                    f"- **{e.get('name')}** ({e.get('type')}): {e.get('value')}"
+                    f'<span class="entity-tag"><strong>{e.get("name")}</strong> | {e.get("type")}</span>',
+                    unsafe_allow_html=True,
                 )
         else:
-            st.caption("No discrete entities identified in this dataset.")
+            st.caption("No entities identified.")
+        st.markdown("</div>", unsafe_allow_html=True)
 
-    with col2:
-        st.subheader("💡 Actionable Insights")
+    with res_col2:
+        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+        st.markdown("#### 💡 STRATEGIC INSIGHTS")
         insights = result.get("insights", [])
         for insight in insights:
-            st.info(f"**Action:** {insight}")
+            st.markdown(
+                f'<div class="insight-pill">{insight}</div>', unsafe_allow_html=True
+            )
 
-        # System Confidence Gauge
+        # Confidence Gauge using dynamic HTML bars
         conf = result.get("confidence_score", 0.0)
-        st.metric(
-            label="Analytic Confidence Score",
-            value=f"{conf * 100:.1f}%",
-            delta="Reliable" if conf > 0.8 else "Conditional",
-            help="Statistical certainty of the extraction schema.",
+        color = "#22C55E" if conf > 0.8 else "#FACC15"
+        st.markdown(
+            f"""
+            <div style="margin-top: 20px;">
+                <p style="margin-bottom: 5px; font-weight: 600;">ANALYTIC CONFIDENCE: {conf*100:.1f}%</p>
+                <div style="background: rgba(255,255,255,0.1); border-radius: 10px; height: 10px;">
+                    <div style="background: {color}; width: {conf*100}%; height: 100%; border-radius: 10px; box-shadow: 0 0 10px {color};"></div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
+        st.markdown("</div>", unsafe_allow_html=True)
 
-    # Footer Metadata
-    with st.expander("📦 Raw System Metadata (JSON)"):
-        st.json(result)
-
+    # Integrity view
     verif = result.get("verification", {})
-    if verif.get("status") == "Verified":
-        st.success(f"**Data Integrity Protocol:** Verified - {verif.get('notes')}")
-    else:
-        st.warning(
-            f"**Data Integrity Protocol:** {verif.get('status')} - {verif.get('notes')}"
-        )
+    v_status = verif.get("status", "Unknown")
+    v_color = "#22C55E" if v_status == "Verified" else "#EF4444"
+    st.markdown(
+        f"""
+        <div class="glass-card" style="border-top: 1px solid {v_color}; background: rgba(0,0,0,0.2);">
+            <strong style="color: {v_color};">INTEGRITY PROTOCOL:</strong> {v_status} — {verif.get('notes')}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    with st.expander("📦 RAW SYSTEM LOG"):
+        st.json(result)
 
 
 if __name__ == "__main__":
     main()
-    st.divider()
-    st.caption("Architecture v2.0 | Security Hardened • Accessible • Deterministic")
+    st.markdown(
+        '<div style="text-align: center; color: #64748B; font-size: 0.8rem; margin-top: 50px;">'
+        "ARCHITECTURE V2.5 | POWERED BY GEMINI ADAPTIVE EXECUTION • CLOUDRUN READY"
+        "</div>",
+        unsafe_allow_html=True,
+    )
