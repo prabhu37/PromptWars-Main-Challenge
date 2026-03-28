@@ -2,3 +2,7 @@ streamlit
 google-generativeai
 python-dotenv
 Pillow
+pydantic
+tenacity
+pytest
+pytest-mock

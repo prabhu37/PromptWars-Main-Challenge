@@ -1,69 +1,151 @@
 import os
 import json
+import logging
+from typing import List, Optional, Union, Any, Dict
+from pydantic import BaseModel, Field, ValidationError
 import google.generativeai as genai
 from dotenv import load_dotenv
 from PIL import Image
-import io
 
-# Load environment variables
+# ----------------------------------------------------------------------------
+# LOGGING CONFIGURATION
+# ----------------------------------------------------------------------------
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
+
+# ----------------------------------------------------------------------------
+# ENVIRONMENT SETUP
+# ----------------------------------------------------------------------------
 load_dotenv()
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-# Configure Gemini API
-api_key = os.getenv("GEMINI_API_KEY")
-if not api_key:
+if not GEMINI_API_KEY:
+    logger.error("GEMINI_API_KEY not found in environment variables.")
     raise ValueError("GEMINI_API_KEY not found in .env file")
 
-genai.configure(api_key=api_key)
+genai.configure(api_key=GEMINI_API_KEY)
 
-def get_directive(path):
-    with open(path, 'r') as f:
-        return f.read()
 
-def analyze_input(data, input_type, directive_path="directives/data_structuring.md"):
+# ----------------------------------------------------------------------------
+# DATA MODELS (Pydantic)
+# ----------------------------------------------------------------------------
+class Entity(BaseModel):
+    name: str = Field(..., description="Name of the entity found.")
+    type: str = Field(..., description="The category of the entity.")
+    value: Any = Field(
+        ..., description="The value or additional info associated with the entity."
+    )
+
+
+class Verification(BaseModel):
+    status: str = Field(..., description="Status (Verified | Incomplete | Ambiguous).")
+    notes: str = Field(
+        ..., description="Supporting reasoning for the verification status."
+    )
+
+
+class InsightResponse(BaseModel):
+    category: str = Field(
+        ...,
+        description="Primary domain (Medical | Traffic | Weather | News | General).",
+    )
+    summary: str = Field(..., description="High-level summary of the input.")
+    entities: List[Entity] = Field(
+        default_factory=list, description="Extracted entities."
+    )
+    verification: Verification = Field(..., description="Integrity assessment.")
+    insights: List[str] = Field(
+        default_factory=list, description="Actionable insights."
+    )
+    confidence_score: float = Field(
+        ..., ge=0, le=1, description="Confidence level (0-1)."
+    )
+
+
+# ----------------------------------------------------------------------------
+# CORE EXECUTION LOGIC
+# ----------------------------------------------------------------------------
+def get_directive(path: str) -> str:
+    """Reads the instruction set from a markdown file."""
+    try:
+        with open(path, "r") as f:
+            return f.read()
+    except FileNotFoundError:
+        logger.error(f"Directive file not found at {path}")
+        raise
+
+
+def analyze_input(
+    data: Union[str, Image.Image, Any],
+    input_type: str,
+    directive_path: str = "directives/data_structuring.md",
+) -> Dict[str, Any]:
     """
-    Orchestrates the Gemini API call using the defined directive.
-    
+    Orchestrates the Gemini API call using the defined directive and validates output.
+
     Args:
-        data: The input data (string for text/audio transcript, or PIL Image, or binary for audio)
-        input_type: 'text', 'image', or 'audio'
-        directive_path: Path to the markdown directive
+        data: The input data (string for text, PIL Image for image, or File object for audio).
+        input_type: 'text', 'image', or 'audio'.
+        directive_path: Path to the markdown directive.
+
+    Returns:
+        Dict containing the structured analysis or an error object.
     """
-    directive = get_directive(directive_path)
-    
+    logger.info(f"Starting analysis for input type: {input_type}")
+
+    try:
+        directive = get_directive(directive_path)
+    except Exception as e:
+        return {"error": f"Failed to load directive: {str(e)}", "status": "Failed"}
+
     # Selection logic for the model
-    # Switching to gemini-2.0-flash as gemini-1.5-flash was reporting 404
-    model = genai.GenerativeModel('gemini-2.0-flash',
-                                 generation_config={"response_mime_type": "application/json"})
-    
+    # gemini-2.0-flash is currently favored for speed and multi-modal stability.
+    model = genai.GenerativeModel(
+        model_name="gemini-2.0-flash",
+        generation_config={"response_mime_type": "application/json"},
+    )
+
     prompt_parts = [
         directive,
         f"\n\nInput type confirmed as: {input_type.upper()}\n",
-        "Process the following input and return ONLY the structured JSON object as specified in the directive above."
+        "Process the following input and return ONLY the structured JSON object as specified in the directive above.",
     ]
 
-    if input_type == 'text':
+    # Map the data to the prompt
+    if input_type == "text":
         prompt_parts.append(f"\nRAW INPUT DATA:\n{data}")
-    elif input_type == 'image':
-        prompt_parts.append(data) # PIL image object
-    elif input_type == 'audio':
-        # Assuming data is a file path or bytes to be uploaded
-        # For simplicity in this script, we expect data as processed bytes/path
-        # but let's assume we pass the Gemini File API object or similar
+    else:
+        # Handle images and audio files (Gemini processes these directly)
         prompt_parts.append(data)
-    
+
     try:
         response = model.generate_content(prompt_parts)
-        # Parse the JSON response
-        structured_data = json.loads(response.text)
-        return structured_data
-    except Exception as e:
+        text_response = response.text.strip()
+
+        # Parse and validate with Pydantic
+        raw_json = json.loads(text_response)
+        validated_data = InsightResponse(**raw_json)
+
+        logger.info(f"Successfully processed and validated {input_type} analysis.")
+        return validated_data.model_dump()
+
+    except ValidationError as ve:
+        logger.error(f"Schema Validation Error: {ve.json()}")
         return {
-            "error": str(e),
+            "error": "The AI response did not match the required schema.",
+            "details": ve.errors(),
             "status": "Failed",
-            "confidence_score": 0.0
+            "confidence_score": 0.0,
         }
+    except Exception as e:
+        logger.exception("Unexpected error during Gemini analysis.")
+        return {"error": str(e), "status": "Failed", "confidence_score": 0.0}
+
 
 if __name__ == "__main__":
-    # Test block
+    # Internal test block for deterministic checking
     test_text = "Accident on Main St. and 5th Ave. Ambulance arriving. Traffic backed up for 2 miles."
-    print(json.dumps(analyze_input(test_text, 'text'), indent=2))
+    result = analyze_input(test_text, "text")
+    print(json.dumps(result, indent=2))
